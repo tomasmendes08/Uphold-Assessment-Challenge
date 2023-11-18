@@ -1,60 +1,76 @@
 const axios = require('axios');
-const constants = require('./constants');
+const config = require('./config');
 
-// Get the current price of BTC-USD
+// Get the current price of currencyPair
 async function getCurrentPrice(currencyPair) {
     try {
-        const response = await axios.get(`${constants.API_URL}${currencyPair}`);
+        const response = await axios.get(`${config.API_URL}${currencyPair}`);
         return parseFloat(response.data.ask);
     } catch (error) {
-        console.error(error);
+        console.log("Error -> " + error.response.data.code + ': ' + error.response.data.message);
     }
 }
 
 // Function that checks oscillations on the currencyPair rate (higher or equal than priceOscillationPercentage) every delimited time (fetchInterval)
-async function checkOscillations(currencyPair, priceOscillationPercentage, fetchInterval) {
-    let lastPrice = null;
+async function checkOscillations(currencyPairs, priceOscillationPercentage, fetchInterval) {
+    let lastPrices = {};
     console.log('Checking oscillations...\n');
-    
+
     const intervalId = setInterval(async () => {
-        let currentPrice = await getCurrentPrice(currencyPair);
-        if (lastPrice === null) {
-            lastPrice = currentPrice;
-        } else if ((Math.abs(lastPrice - currentPrice)) / lastPrice * 100 >= priceOscillationPercentage) {
-            console.log('Alert! BTC-USD oscillation detected.\nLast price: ' + lastPrice + '\nCurrent price: ' + currentPrice + '\nPercentage change: ' + Math.abs(lastPrice - currentPrice) / lastPrice * 100 + '%\n');
-            lastPrice = currentPrice;
-        }
+        const promises = currencyPairs.map(async (currencyPair) => {
+            const currentPrice = await getCurrentPrice(currencyPair);
+            return { currencyPair, currentPrice };
+        });
+
+        const results = await Promise.all(promises);
+
+        results.forEach(({ currencyPair, currentPrice }) => {
+            if (!lastPrices[currencyPair]) {
+                lastPrices[currencyPair] = currentPrice;
+            } else {
+                const percentageChange = (Math.abs(lastPrices[currencyPair] - currentPrice)) / lastPrices[currencyPair] * 100;
+                if (percentageChange >= priceOscillationPercentage) {
+                    console.log(`Alert! ${currencyPair} oscillation detected.`);
+                    console.log(`Last price: ${lastPrices[currencyPair]}`);
+                    console.log(`Current price: ${currentPrice}`);
+                    console.log(`Percentage change: ${percentageChange}%\n`);
+                    lastPrices[currencyPair] = currentPrice;
+                }
+            }
+        });
     }, fetchInterval);
-    
 }
 
 async function main() {
     const args = process.argv.slice(2);
-    
-    let currencyPair = args[0];
-    if (currencyPair === undefined) {
-        console.log('No currency pair provided. Using default currency pair: ' + constants.DEFAULT_CURRENCY_PAIR);
-        currencyPair = constants.DEFAULT_CURRENCY_PAIR;
+
+    let currencyPairs = args[0];
+    if (!currencyPairs) {
+        console.log('No currency pairs provided. Using default currency pair: ' + config.DEFAULT_CURRENCY_PAIR);
+        currencyPairs = config.DEFAULT_CURRENCY_PAIR;
+    } else {
+        currencyPairs = currencyPairs.split(',').map(pair => pair.trim().toUpperCase());
     }
-    
+
     let priceOscillationPercentage = parseFloat(args[1]);
-    if (isNaN(priceOscillationPercentage) || priceOscillationPercentage < constants.MINIMUM_PRICE_OSCILLATION_PERCENTAGE || priceOscillationPercentage > constants.MAXIMUM_PRICE_OSCILLATION_PERCENTAGE) {
-        console.log('No price oscillation percentage provided or percentage is not valid. Using default price oscillation percentage: ' + constants.DEFAULT_PRICE_OSCILLATION_PERCENTAGE);
-        priceOscillationPercentage = constants.DEFAULT_PRICE_OSCILLATION_PERCENTAGE;
+    if (isNaN(priceOscillationPercentage) || priceOscillationPercentage < config.MINIMUM_PRICE_OSCILLATION_PERCENTAGE || priceOscillationPercentage > config.MAXIMUM_PRICE_OSCILLATION_PERCENTAGE) {
+        console.log('No price oscillation percentage provided or percentage is not valid. Valid values between [0.001, 10]%. Using default price oscillation percentage: ' + config.DEFAULT_PRICE_OSCILLATION_PERCENTAGE);
+        priceOscillationPercentage = config.DEFAULT_PRICE_OSCILLATION_PERCENTAGE;
     }
-    
+
     let fetchInterval = parseInt(args[2]);
-    if(isNaN(fetchInterval) || fetchInterval < constants.MINIMUM_FETCH_INTERVAL || fetchInterval > constants.MAXIMUM_FETCH_INTERVAL){
-        console.log('No fetch interval provided or interval is not valid. Using default fetch interval: ' + constants.DEFAULT_FETCH_INTERVAL);
-        fetchInterval = constants.DEFAULT_FETCH_INTERVAL;
+    if (isNaN(fetchInterval) || fetchInterval < config.MINIMUM_FETCH_INTERVAL || fetchInterval > config.MAXIMUM_FETCH_INTERVAL) {
+        console.log('No fetch interval provided or interval is not valid. Valid interval between [1000; 60000]ms. Using default fetch interval: ' + config.DEFAULT_FETCH_INTERVAL);
+        fetchInterval = config.DEFAULT_FETCH_INTERVAL;
     }
-    
-    console.log(`Currency Pair: ${currencyPair}`);
+
+    console.log(`Currency Pairs: ${currencyPairs}`);
     console.log(`Price Oscillation Percentage: ${priceOscillationPercentage}`);
     console.log(`Fetch Interval: ${fetchInterval}`);
 
-    await checkOscillations(currencyPair, priceOscillationPercentage, fetchInterval);
+    await checkOscillations(currencyPairs, priceOscillationPercentage, fetchInterval);
 }
+
 
 main();
 
