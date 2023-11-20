@@ -1,18 +1,36 @@
 const app = require('./app');
-const constants = require('./config');
+const config = require('./constants');
 
-describe('App', () => {
-    test('should do something', () => {
-        // Arrange
-        const input = ...;
-        const expectedOutput = ...;
+jest.mock('axios');
 
-        // Act
-        const output = app.someFunction(input);
+const axios = require('axios');
+const app = require('./app');
 
-        // Assert
-        expect(output).toEqual(expectedOutput);
+jest.mock('axios');
+
+describe('Bot functionality', () => {
+    describe('checkOscillations', () => {
+        it('should check oscillations on the currency pair rate', async () => {
+            
+            const currencyPairs = ['BTC-USD', 'ETH-USD'];
+            const priceOscillationPercentage = config.DEFAULT_PRICE_OSCILLATION_PERCENTAGE;
+            const fetchInterval = config.DEFAULT_FETCH_INTERVAL;
+
+            // Call the checkOscillations function
+            await app.checkOscillations(currencyPairs, priceOscillationPercentage, fetchInterval);
+
+            // Add your assertions here to verify the behavior of the function
+        });
     });
 
-    // Add more tests as needed
+    describe('main', () => {
+        it('should call the main function', async () => {
+            // Mock any necessary dependencies or functions
+
+            // Call the main function
+            await app.main();
+
+            // Add your assertions here to verify the behavior of the function
+        });
+    });
 });

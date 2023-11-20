@@ -1,10 +1,15 @@
 const axios = require('axios');
-const config = require('./config');
+const constants = require('./constants');
+const readline = require('readline');
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
 
 // Get the current price of currencyPair
 async function getCurrentPrice(currencyPair) {
     try {
-        const response = await axios.get(`${config.API_URL}${currencyPair}`);
+        const response = await axios.get(`${constants.API_URL}${currencyPair}`);
         return parseFloat(response.data.ask);
     } catch (error) {
         console.log("Error -> " + error.response.data.code + ': ' + error.response.data.message);
@@ -15,8 +20,8 @@ async function getCurrentPrice(currencyPair) {
 async function checkOscillations(currencyPairs, priceOscillationPercentage, fetchInterval) {
     let lastPrices = {};
     console.log('Checking oscillations...\n');
-
-    const intervalId = setInterval(async () => {
+    console.log(currencyPairs);
+    setInterval(async () => {
         const promises = currencyPairs.map(async (currencyPair) => {
             const currentPrice = await getCurrentPrice(currencyPair);
             return { currencyPair, currentPrice };
@@ -41,38 +46,72 @@ async function checkOscillations(currencyPairs, priceOscillationPercentage, fetc
     }, fetchInterval);
 }
 
+function validateCurrencyPairs(currencyPairs) {
+    const currencyPairRegex = /^[A-Z]{3}-[A-Z]{3}(,[A-Z]{3}-[A-Z]{3})*$/;
+    return currencyPairRegex.test(currencyPairs);
+}
+
+// mainMenu function
+async function mainMenu() {
+    console.log("*** Welcome to the Uphold Bot ***\n");
+
+    const askCurrencyPairs = async () => {
+        return new Promise((resolve) => {
+            rl.question('Please enter the currency pairs you want to check separated by comma (e.g. BTC-USD,ETH-USD): ', (currencyPairs) => {
+                if (!validateCurrencyPairs(currencyPairs)) {
+                    console.log("Invalid currency pairs. Please enter the currency pairs in the correct format (e.g. BTC-USD,ETH-USD).");
+                    resolve(askCurrencyPairs()); // Ask for currency pairs again
+                } else {
+                    resolve(currencyPairs.split(','));
+                }
+            });
+        });
+    };
+
+    const askPriceOscillationPercentage = async (currencyPairs) => {
+        return new Promise((resolve) => {
+            rl.question('Please enter the price oscillation percentage (e.g. 0.01): ', (priceOscillationPercentage) => {
+                // Validate priceOscillationPercentage
+                if (parseFloat(priceOscillationPercentage) >= constants.MINIMUM_PRICE_OSCILLATION_PERCENTAGE && parseFloat(priceOscillationPercentage) <= constants.MAXIMUM_PRICE_OSCILLATION_PERCENTAGE) {
+                    resolve(parseFloat(priceOscillationPercentage));
+                } else {
+                    console.log(`Invalid price oscillation percentage. Please enter a value between ${constants.MINIMUM_PRICE_OSCILLATION_PERCENTAGE} and ${constants.MAXIMUM_PRICE_OSCILLATION_PERCENTAGE}.`);
+                    resolve(askPriceOscillationPercentage(currencyPairs)); // Ask for price oscillation percentage again
+                }
+            });
+        });
+    };
+
+    const askFetchInterval = async (priceOscillationPercentage) => {
+        return new Promise((resolve) => {
+            rl.question('Please enter the fetch interval in milliseconds (e.g. 5000): ', (fetchInterval) => {
+                // Validate fetchInterval
+                if (parseInt(fetchInterval) >= constants.MINIMUM_FETCH_INTERVAL && parseInt(fetchInterval) <= constants.MAXIMUM_FETCH_INTERVAL) {
+                    resolve(parseInt(fetchInterval));
+                } else {
+                    console.log(`Invalid fetch interval. Please enter a value between ${constants.MINIMUM_FETCH_INTERVAL} and ${constants.MAXIMUM_FETCH_INTERVAL}.`);
+                    resolve(askFetchInterval(priceOscillationPercentage)); // Ask for fetch interval again
+                }
+            });
+        });
+    };
+
+    const currencyPairs = await askCurrencyPairs();
+    const priceOscillationPercentage = await askPriceOscillationPercentage(currencyPairs);
+    const fetchInterval = await askFetchInterval(priceOscillationPercentage);
+
+    return { currencyPairs, priceOscillationPercentage, fetchInterval };
+}
+
+// Main function
 async function main() {
-    const args = process.argv.slice(2);
+    const { currencyPairs, priceOscillationPercentage, fetchInterval } = await mainMenu();
 
-    let currencyPairs = args[0];
-    if (!currencyPairs) {
-        console.log('No currency pairs provided. Using default currency pair: ' + config.DEFAULT_CURRENCY_PAIR);
-        currencyPairs = config.DEFAULT_CURRENCY_PAIR;
-    } else {
-        currencyPairs = currencyPairs.split(',').map(pair => pair.trim().toUpperCase());
-    }
-
-    let priceOscillationPercentage = parseFloat(args[1]);
-    if (isNaN(priceOscillationPercentage) || priceOscillationPercentage < config.MINIMUM_PRICE_OSCILLATION_PERCENTAGE || priceOscillationPercentage > config.MAXIMUM_PRICE_OSCILLATION_PERCENTAGE) {
-        console.log('No price oscillation percentage provided or percentage is not valid. Valid values between [0.001, 10]%. Using default price oscillation percentage: ' + config.DEFAULT_PRICE_OSCILLATION_PERCENTAGE);
-        priceOscillationPercentage = config.DEFAULT_PRICE_OSCILLATION_PERCENTAGE;
-    }
-
-    let fetchInterval = parseInt(args[2]);
-    if (isNaN(fetchInterval) || fetchInterval < config.MINIMUM_FETCH_INTERVAL || fetchInterval > config.MAXIMUM_FETCH_INTERVAL) {
-        console.log('No fetch interval provided or interval is not valid. Valid interval between [1000; 60000]ms. Using default fetch interval: ' + config.DEFAULT_FETCH_INTERVAL);
-        fetchInterval = config.DEFAULT_FETCH_INTERVAL;
-    }
-
-    console.log(`Currency Pairs: ${currencyPairs}`);
+    console.log(`\nCurrency Pairs: ${currencyPairs}`);
     console.log(`Price Oscillation Percentage: ${priceOscillationPercentage}`);
-    console.log(`Fetch Interval: ${fetchInterval}`);
+    console.log(`Fetch Interval: ${fetchInterval}\n`);
 
     await checkOscillations(currencyPairs, priceOscillationPercentage, fetchInterval);
 }
 
-
 main();
-
-
-

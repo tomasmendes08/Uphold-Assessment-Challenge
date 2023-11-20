@@ -1,0 +1,40 @@
+version: "3"
+services:
+  database:
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: bot_database
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "user", "-d", "bot_database"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes: 
+      - database:/var/lib/postgresql/data
+      - ./database/create.sql:/docker-entrypoint-initdb.d/init.sql
+  bot:
+    build: .
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      DATABASE_USER: user
+      DATABASE_PASSWORD: 12345
+      DATABASE_HOST: host
+      DATABASE_PORT: 8888
+      DATABASE_NAME: bot_database
+    ports:
+      - "4000:4000"
+    command: npm start
+    volumes:
+      - bot_node_modules:/bot_challenge/node_modules
+      - .:/bot_challenge
+
+volumes:
+  bot_node_modules:
+  database:
+    driver: local
