@@ -113,7 +113,7 @@ Enter docker *database* container terminal:
 
 ```
 
-docker exec -it uphold-database-1 bash
+docker exec -it uphold-assessment-challenge-database-1 bash
 
 ```
 
