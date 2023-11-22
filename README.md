@@ -21,13 +21,15 @@
 
 ## Bot Configuration
 
-  
+
 
 | **Argument**                 | **Function**                                                    | **Value**                                                                  | **Default** |
 |------------------------------|-----------------------------------------------------------------|----------------------------------------------------------------------------|-------------|
 | CURRENCY_PAIRS               | Specify currency pairs for which  bot alerts should be received | Pairs available at Uphold API  separated by comma (e.g. "BTC-USD,ETH-USD") | BTC-USD     |
 | PRICE_OSCILLATION_PERCENTAGE | Specify bot's price oscillation  percentage                     | Integer (percentage)                                                       | 0.01        |
 | FETCH_INTERVAL               | Specify data retrieval interval  from Uphold API                | Float (milliseconds)                                                       | 5000        |
+
+  
 
 ## Bot program (bot & database)
 
@@ -53,7 +55,7 @@ docker-compose build
 
   
 
-Run *bot* and database *containers* with default arguments:
+Run *bot* and *database* containers with default arguments:
 
   
 
@@ -105,7 +107,7 @@ docker-compose down bot \\stop bot container (e.g to run other bot)
 
   
 
-Enter docker database container terminal:
+Enter docker *database* container terminal:
 
   
 
@@ -117,7 +119,7 @@ docker exec -it uphold-database-1 bash
 
   
 
-Enter postgres terminal:
+Enter *postgres* terminal:
 
   
 
