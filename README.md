@@ -23,17 +23,11 @@
 
   
 
-| Argument | Value | Function | Default
-
-|---|---|---|---|
-
-| CURRENCY_PAIRS | Tags available at Uphold API separated by comma (e.g. "BTC-USD,ETH-USD") | Specify currency pairs for which alerts should be received | BTC-USD |
-
-| PRICE_OSCILLATION_PERCENTAGE | Number (percentage) | Specify bot's oscillation alert percentage | 0.01 |
-
-| FETCH_INTERVAL | Number (milliseconds) | Specify API data retrieval interval | 5000 |
-
-  
+| **Argument**                 | **Function**                                                    | **Value**                                                                  | **Default** |
+|------------------------------|-----------------------------------------------------------------|----------------------------------------------------------------------------|-------------|
+| CURRENCY_PAIRS               | Specify currency pairs for which  bot alerts should be received | Pairs available at Uphold API  separated by comma (e.g. "BTC-USD,ETH-USD") | BTC-USD     |
+| PRICE_OSCILLATION_PERCENTAGE | Specify bot's price oscillation  percentage                     | Integer (percentage)                                                       | 0.01        |
+| FETCH_INTERVAL               | Specify data retrieval interval  from Uphold API                | Float (milliseconds)                                                       | 5000        |
 
 ## Bot program (bot & database)
 
